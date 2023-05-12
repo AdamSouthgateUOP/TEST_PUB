@@ -1,0 +1,40 @@
+﻿create materialized view DQ_8080_MVW
+refresh force on demand
+as
+with in_error as
+ (select mab.map_code
+        ,sum(mab.mab_perc) as percentage
+    from cam_mab_stg mab
+   group by mab.map_code
+  having sum(mab.mab_perc) != 100
+   order by mab.map_code),
+academic_year as
+ (select /* +MATERIALIZE */
+   t.academic_year_full_code
+  ,t.academic_year_skey
+    from bidw.dim_academic_year t
+   where t.academic_year_bkey =
+         (select x.academic_year from bidw.dim_date x where x.date_bkey = to_char(trunc(sysdate), 'DD/MM/YYYY'))),
+candidates as
+ (select distinct mod.mod_code
+    from in_error ie
+    join cam_map_stg map
+      on map.map_code = ie.map_code
+    join cam_mav_stg mav
+      on mav.map_code = map.map_code
+    join ins_mod_stg mod
+      on mod.mod_code = mav.mod_code
+   where mav.ayr_code = (select academic_year_full_code from academic_year)
+     and mod.mod_iuse = 'Y'
+     and mod.mot_code != 'APL'),
+module_list as
+ (select mod.mod_code
+    from ins_mod_stg mod
+    join cam_mav_stg mav
+      on mav.mod_code = mod.mod_code
+   where mod.mod_iuse = 'Y'
+     and mav.ayr_code = (select academic_year_full_code from academic_year)
+   group by mod.mod_code
+   order by mod.mod_code)
+select nvl(y.mod_code, 'XX') as mod_code from module_list x left outer join candidates y on y.mod_code = x.mod_code;
+

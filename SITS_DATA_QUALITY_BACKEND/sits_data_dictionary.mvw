@@ -1,0 +1,87 @@
+﻿create materialized view SITS_DATA_DICTIONARY
+refresh force on demand
+as
+select d.dct_code dictionary
+      ,e.ent_prfx || e.ent_code table_name
+      ,e.ent_name
+      ,f.fld_seqn
+     ,f.fld_name
+      ,f.fld_code column_name
+      ,f.fld_name description
+      ,case f.fld_indx
+         when 'P' then
+          'Primary Key'
+         when 'I' then
+          'Indexed'
+         when 'N' then
+          null
+       end as indexed
+      ,case f.fld_mand
+         when 'Y' then
+          'Yes'
+         else
+          null
+       end as Mandatory
+      ,case f.fld_type
+         when 'S' then
+          'Character'
+         when 'D' then
+          'Date'
+         when 'N' then
+          'Numeric'
+         when 'E' then
+          'DateTime'
+       end as field_type
+      ,f.fld_lgth field_length
+      ,case f.fld_indb
+         when 'Y' then
+          'Yes'
+         when 'N' then
+          'No'
+       end as in_database
+      ,f.fld_help help_text
+      ,le.ent_prfx || le.ent_code lookup_table
+      ,lf.fld_code lookup_PK
+      ,case
+         when le.ent_code is null then
+          null
+         else
+          'left join ' || le.ent_prfx || le.ent_code || ' ' || le.ent_code || ' on ' || e.ent_prfx || e.ent_code || '.' ||
+          f.fld_code || ' = ' || le.ent_code || '.' || lf.fld_code
+       end as lookup_join
+      ,case
+         when le.ent_code is null then
+          null
+         else
+          'left join ' || le.ent_name || ' where ' || e.ent_name || '.' || f.fld_name || ' equals ' || le.ent_name || '.' ||
+          lf.fld_name
+       end as lookup_join_english
+      ,u.udf_prof
+      ,u.udf_name
+      ,case u.udf_type
+         when 'D' then
+          'Date'
+         when 'N' then
+          'Numeric'
+         else
+          u.udf_type
+       end as udf_field_type
+  from men_dct d
+  join men_ent e
+    on d.dct_code = e.ent_dctc
+  join men_fld f
+    on e.ent_dctc = f.fld_dctc
+   and e.ent_code = f.fld_entc
+  left join men_fld lf
+    on lf.fld_dctc = f.fld_dct1
+   and lf.fld_entc = f.fld_ent1
+   and lf.fld_code = f.fld_fld1
+  left join men_ent le
+    on lf.fld_dctc = le.ent_dctc
+   and lf.fld_entc = le.ent_code
+  left join men_udf u
+    on f.fld_dctc = u.udf_dctc
+   and f.fld_entc = u.udf_entc
+   and f.fld_code = u.udf_fldc
+/* where le.ent_prfx || le.ent_code is not null*/;
+

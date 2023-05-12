@@ -1,0 +1,943 @@
+﻿create materialized view CURRENT_YEAR_STUDENT_CURR_ENROLMENT_LIST_MVW_NEW
+refresh force on demand
+as
+with academic_year_as as
+ (select academic_year from dim_date_vw x where x.DATE_TIME_START = trunc(sysdate)),
+ENROL_A as
+ (select enrolment.sce_seq2
+        ,enrolment.sce_stac
+        ,course.CRS_UDFI
+        ,course.CRS_CODE
+        ,course.CRS_MOAC
+        ,sta.sta_name as enrolment_status_desc
+        ,enrolment.sce_blok
+        ,enrolment.sce_dptc
+        ,enrolment.SCE_CGPC
+        ,enrolment.SCE_FACC
+        ,enrolment.sce_ayrc
+        ,enrolment.SCE_OCCL
+        ,enrolment.SCE_BEGD
+        ,enrolment.SCE_UDF5
+        ,PRS.PRS_CODE as TUTOR_CODE
+        ,PRS.PRS_FNM1 as TUTOR_FIRSTNAME
+        ,PRS.PRS_NAME as TUTOR_NAME
+        ,PRS.PRS_SNAM as TUTOR_SURNAME
+        ,stu.stu_code
+        ,stu.stu_srtn
+        ,stu.stu_updd
+        ,stu.stu_ucid
+        ,stu.stu_sta1
+        ,stu.stu_sta2
+        ,stu.stu_sta3
+        ,stu.stu_titl
+        ,stu.stu_tlec
+        ,stu.stu_surn
+        ,stu.stu_prvs
+        ,stu.stu_lasn
+        ,stu.stu_fnm1
+        ,stu.stu_fnm2
+        ,stu.stu_fnm3
+        ,stu.stu_fusd
+        ,stu.stu_init
+        ,stu.stu_name
+        ,stu.stu_dob
+        ,stu.stu_gend
+        ,stu.stu_btch
+        ,stu.stu_extr
+        ,stu.stu_begd
+        ,stu.stu_endd
+        ,stu.stu_marc
+        ,stu.stu_natc
+        ,stu.stu_rsdt
+        ,stu.stu_entd
+        ,stu.stu_perm
+        ,stu.stu_cobc
+        ,stu.stu_ethc
+        ,stu.stu_leac
+        ,stu.stu_dsbc
+        ,stu.stu_dsbr
+        ,stu.stu_dsba
+        ,stu.stu_hqlc
+        ,stu.stu_sclc
+        ,stu.stu_aa1c
+        ,stu.stu_aa2c
+        ,stu.stu_aa3c
+        ,stu.stu_aa4c
+        ,stu.stu_aa5c
+        ,stu.stu_spoc
+        ,stu.stu_ocbc
+        ,stu.stu_sitc
+        ,stu.stu_bldc
+        ,stu.stu_romc
+        ,stu.stu_fstc
+        ,stu.stu_secc
+        ,stu.stu_rlgc
+        ,stu.stu_iacc
+        ,stu.stu_ifcc
+        ,stu.stu_farc
+        ,stu.stu_puyn
+        ,stu.stu_adid
+        ,stu.stu_itno
+        ,stu.stu_mvln
+        ,stu.stu_mvpp
+        ,stu.stu_nokn
+        ,stu.stu_nokr
+        ,stu.stu_nokt
+        ,stu.stu_had1
+        ,stu.stu_had2
+        ,stu.stu_had3
+        ,stu.stu_had4
+        ,stu.stu_had5
+        ,stu.stu_hapc
+        ,stu.stu_hams
+        ,stu.stu_uhoc
+        ,stu.stu_htel
+        ,stu.stu_hat2
+        ,stu.stu_hat3
+        ,stu.stu_hafn
+        ,stu.stu_haem
+        ,stu.stu_cad1
+        ,stu.stu_cad2
+        ,stu.stu_cad3
+        ,stu.stu_cad4
+        ,stu.stu_cad5
+        ,stu.stu_capc
+        ,stu.stu_cams
+        ,stu.stu_ctel
+        ,stu.stu_cat2
+        ,stu.stu_cat3
+        ,stu.stu_cafn
+        ,stu.stu_caem
+        ,stu.stu_bkbr
+        ,stu.stu_bksc
+        ,stu.stu_bkac
+        ,stu.stu_sapx
+        ,stu.stu_bsrn
+        ,stu.stu_bkan
+        ,stu.stu_scot
+        ,stu.stu_esid
+        ,stu.stu_nref
+        ,stu.stu_ttrn
+        ,stu.stu_codc
+        ,stu.stu_ttac
+        ,stu.stu_insc
+        ,stu.stu_ylas
+        ,stu.stu_ylai
+        ,stu.stu_udf1
+        ,stu.stu_udf2
+        ,stu.stu_udf3
+        ,stu.stu_nino
+        ,stu.stu_ndep
+        ,stu.stu_rfvc
+        ,stu.stu_majsfc
+        ,stu.stu_spo1
+        ,stu.stu_unemp
+        ,stu.stu_duun
+        ,stu.stu_ssin
+        ,stu.stu_autn
+        ,stu.stu_suni
+        ,stu.stu_vqrn
+        ,stu.stu_lbid
+        ,stu.stu_secl
+        ,stu.stu_ldif
+        ,stu.stu_wels
+        ,stu.stu_nid1
+        ,stu.stu_nid2
+        ,stu.stu_uci2
+        ,stu.stu_deps
+        ,stu.stu_udf4
+        ,stu.stu_udf5
+        ,stu.stu_udf6
+        ,stu.stu_udf7
+        ,stu.stu_udf8
+        ,stu.stu_udf9
+        ,stu.stu_udfa
+        ,stu.stu_udfb
+        ,stu.stu_udfc
+        ,stu.stu_udfd
+        ,stu.stu_udfe
+        ,stu.stu_udff
+        ,stu.stu_udfg
+        ,stu.stu_udfh
+        ,stu.stu_udfi
+        ,stu.stu_udfj
+        ,stu.stu_udfk
+        ,stu.stu_inem
+        ,stu.stu_gmcn
+        ,stu.stu_dphn
+        ,stu.stu_nat1
+        ,stu.stu_weyn
+        ,stu.stu_emyn
+        ,stu.stu_poyn
+        ,stu.stu_smyn
+        ,stu.stu_unln
+        ,stu.stu_mocc
+        ,stu.stu_soic
+        ,stu.stu_soi1
+        ,stu.stu_rcsi
+        ,stu.stu_locn
+        ,stu.stu_scl1
+        ,stu.stu_nmcp
+        ,stu.stu_isar
+        ,stu.stu_toer
+        ,stu.stu_ielr
+        ,stu.stu_sslc
+        ,stu.stu_ukba
+        ,stu.stu_imac
+        ,stu.stu_ohtc
+        ,stu.stu_ohdc
+        ,stu.stu_relb
+        ,stu.stu_sxor
+        ,stu.stu_gnid
+        ,stu.stu_davf
+        ,stu.stu_ocb1
+        ,stu.stu_saas
+        ,stu.stu_sasn
+        ,stu.stu_said
+        ,stu.stu_penn
+        ,stu.stu_atyp
+        ,ssp.ssp_spoc as sponsor_flag
+        ,course.crs_prsc
+        ,stu_level.lev_name student_level
+        ,SCJ_EEND
+        ,qen.qen_name
+        ,enrolment.sce_endd
+        ,course_join.scj_begd
+        ,course_join.scj_endd
+        ,moa.moa_name
+        ,moa.MOA_FCMA
+        ,moa.moa_udf2
+        ,moa.moa_udf3
+        ,course.crs_cgpc
+        ,enrolment.sce_cred
+        ,enrolment.sce_seq2 as enrolment_seq2
+        ,sce_scjc
+        ,ROW_NUMBER() OVER(partition by enrolment.sce_stuc, enrolment.sce_ayrc order by enrolment.sce_scjc desc, enrolment.sce_begd desc, enrolment.sce_blok desc, enrolment.sce_seq2 desc) RN
+        ,enrolment.sce_fstc as enrolment_fee_status
+        ,prc.prs_name as course_leader_name
+        ,dpt.dpt_code
+        ,dpt.dpt_name
+        ,dpt.dpt_snam
+        ,fac.fac_code
+        ,fac.fac_name
+        ,fac.fac_snam
+    from sits_live.srs_sce_stg enrolment
+        ,sits_live.srs_scj_stg course_join
+        ,sits_live.ins_spr_stg program
+        ,sits_live.srs_crs_stg course
+        ,sits_live.ins_prs_stg prs
+        ,sits_live.srs_sta_stg sta
+        ,sits_live.ins_stu_stg stu
+        ,sits_live.srs_ssp_stg ssp
+        ,sits_live.cam_lev_stg stu_level
+        ,sits_live.srs_qen_stg qen
+        ,sits_live.ins_moa_stg moa
+        ,sits_live.ins_prs_stg prc
+        ,sits_live.ins_dpt_stg dpt
+        ,sits_live.SRS_FAC_STG fac
+   where enrolment.sce_scjc = course_join.scj_code
+     and course_join.scj_sprc = program.spr_code
+     and course_join.scj_crsc = course.crs_code
+     and enrolment.sce_stuc = stu.stu_code
+     and enrolment.sce_stac = sta.sta_code
+     and course_join.scj_prsc = prs.prs_code(+)
+     and course.crs_prsc = prc.prs_code(+)
+     and stu.stu_code = ssp.ssp_stuc(+)
+     and program.spr_levc = lev_code(+)
+     and course_join.scj_qenc = qen.qen_code(+)
+     and course.CRS_MOAC = MOA.MOA_CODE
+     and course.CRS_DPTC = dpt.DPT_CODE
+     and course.crs_facc = FAC.FAC_CODE
+   order by enrolment.sce_scjc desc
+           ,enrolment.sce_stac),
+enrol_1 as
+ (select * from ENROL_A where RN = 1),
+enrol_b as
+ (select /*PARALLEL(4)*/
+   TO_CHAR(stu.TUTOR_CODE) as tutor_code
+  ,TO_CHAR(stu.TUTOR_NAME) as tutor_name
+  ,TO_CHAR(stu.TUTOR_FIRSTNAME) as tutor_firstname
+  ,TO_CHAR(stu.TUTOR_SURNAME) as tutor_surname
+  ,TO_CHAR(stu.stu_code) as id_number
+  ,TO_NUMBER(stu.SCE_SEQ2) as latest_enrolment
+  ,TO_CHAR(stu.SCE_STAC) as enrolment_status
+  ,to_char(stu.enrolment_status_desc) as enrolment_status_desc
+  ,TO_CHAR(stu.CRS_UDFI) as course_code
+  ,TO_CHAR(stu.CRS_CODE) as sits_course_code
+  , /*case
+                                            when TO_CHAR(stu.CRS_MOAC) in ('01-03', '31-03', '01-06', '31-05') then
+                                             'Y'
+                                            else
+                                             'N'
+                                          end as dl_course_flag*/case
+     when stu.moa_udf3 = 'D' then
+      'Y'
+     else
+      'N'
+   end as dl_course_flag -- New, Speak to Katie.
+  ,TO_CHAR(stu.sce_blok) as course_year
+  ,TO_CHAR(stu.sce_dptc) as department
+  ,TO_CHAR(stu.SCE_CGPC) as course_level
+  ,TO_CHAR(stu.SCE_FACC) as faculty
+  ,TO_CHAR(SUBSTR(STU.SCE_AYRC, 1, 4)) as academic_year
+  ,TO_CHAR(STU.SCE_OCCL) as stu_occurrence
+  ,STU.SCE_BEGD as enrolment_start_date
+  ,STU.SCE_ENDD as enrolment_end_date
+  ,TO_CHAR(STU.SCE_UDF5) as repeater_flag
+  ,stu.scj_begd as course_start_date
+  ,stu.scj_endd as course_end_date
+  ,case
+     when TO_CHAR(STU.sponsor_flag) is null then
+      '0'
+     else
+      case
+        when STU.sponsor_flag in
+             ('7033/O', '7418/O', '5282/O', '7040/O', '3500/O', '1351/O', '5453/E', '5394/E', '7768/O', '7906/E', '7761/O', '7915/E',
+              '5938/O', '8210/E', '1504/O', '7957/E', '7188/O', '7681/E', '7622/O', '3227/O', '8200/E', '8229/E', '8450/E', '8504/O',
+              '2934/E', '2576/E', '5679/O', '3199/O', '8383/O', '8457/O', '7929/O', '8438/O', '5948/E', '5886/E', '3501/O', '3504/E',
+              '1180/O', '6682/O', '6814/O', '6798/O', '8636/O', '2156/O', '1097', '5531/O', '1030', '9002/E', '1158', '1051/O', '1334/O',
+              '6342/O', '4912/O') then
+         '1'
+        else
+         '0'
+      end
+   end as sponsor_flag
+  ,to_char(stu.crs_prsc) course_leader_code
+  ,to_char(stu.student_level) student_level
+  ,SCJ_EEND
+  ,TO_CHAR(qen_name) entry_qual
+  ,stu.crs_moac
+  ,moa_name
+  ,MOA_FCMA
+  ,SCE_AYRC
+  ,crs_cgpc
+  ,sce_cred
+  ,enrolment_seq2
+  ,sce_scjc
+  ,SCE_OCCL
+  ,enrolment_fee_status
+  ,moa_udf2
+  ,course_leader_name
+  ,stu_code
+  ,stu_srtn
+  ,stu_updd
+  ,stu_ucid
+  ,stu_sta1
+  ,stu_sta2
+  ,stu_sta3
+  ,stu_titl
+  ,stu_tlec
+  ,stu_surn
+  ,stu_prvs
+  ,stu_lasn
+  ,stu_fnm1
+  ,stu_fnm2
+  ,stu_fnm3
+  ,stu_fusd
+  ,stu_init
+  ,stu_name
+  ,stu_dob
+  ,stu_gend
+  ,stu_btch
+  ,stu_extr
+  ,stu_begd
+  ,stu_endd
+  ,stu_marc
+  ,stu_natc
+  ,stu_rsdt
+  ,stu_entd
+  ,stu_perm
+  ,stu_cobc
+  ,stu_ethc
+  ,stu_leac
+  ,stu_dsbc
+  ,stu_dsbr
+  ,stu_dsba
+  ,stu_hqlc
+  ,stu_sclc
+  ,stu_aa1c
+  ,stu_aa2c
+  ,stu_aa3c
+  ,stu_aa4c
+  ,stu_aa5c
+  ,stu_spoc
+  ,stu_ocbc
+  ,stu_sitc
+  ,stu_bldc
+  ,stu_romc
+  ,stu_fstc
+  ,stu_secc
+  ,stu_rlgc
+  ,stu_iacc
+  ,stu_ifcc
+  ,stu_farc
+  ,stu_puyn
+  ,stu_adid
+  ,stu_itno
+  ,stu_mvln
+  ,stu_mvpp
+  ,stu_nokn
+  ,stu_nokr
+  ,stu_nokt
+  ,stu_had1
+  ,stu_had2
+  ,stu_had3
+  ,stu_had4
+  ,stu_had5
+  ,stu_hapc
+  ,stu_hams
+  ,stu_uhoc
+  ,stu_htel
+  ,stu_hat2
+  ,stu_hat3
+  ,stu_hafn
+  ,stu_haem
+  ,stu_cad1
+  ,stu_cad2
+  ,stu_cad3
+  ,stu_cad4
+  ,stu_cad5
+  ,stu_capc
+  ,stu_cams
+  ,stu_ctel
+  ,stu_cat2
+  ,stu_cat3
+  ,stu_cafn
+  ,stu_caem
+  ,stu_bkbr
+  ,stu_bksc
+  ,stu_bkac
+  ,stu_sapx
+  ,stu_bsrn
+  ,stu_bkan
+  ,stu_scot
+  ,stu_esid
+  ,stu_nref
+  ,stu_ttrn
+  ,stu_codc
+  ,stu_ttac
+  ,stu_insc
+  ,stu_ylas
+  ,stu_ylai
+  ,stu_udf1
+  ,stu_udf2
+  ,stu_udf3
+  ,stu_nino
+  ,stu_ndep
+  ,stu_rfvc
+  ,stu_majsfc
+  ,stu_spo1
+  ,stu_unemp
+  ,stu_duun
+  ,stu_ssin
+  ,stu_autn
+  ,stu_suni
+  ,stu_vqrn
+  ,stu_lbid
+  ,stu_secl
+  ,stu_ldif
+  ,stu_wels
+  ,stu_nid1
+  ,stu_nid2
+  ,stu_uci2
+  ,stu_deps
+  ,stu_udf4
+  ,stu_udf5
+  ,stu_udf6
+  ,stu_udf7
+  ,stu_udf8
+  ,stu_udf9
+  ,stu_udfa
+  ,stu_udfb
+  ,stu_udfc
+  ,stu_udfd
+  ,stu_udfe
+  ,stu_udff
+  ,stu_udfg
+  ,stu_udfh
+  ,stu_udfi
+  ,stu_udfj
+  ,stu_udfk
+  ,stu_inem
+  ,stu_gmcn
+  ,stu_dphn
+  ,stu_nat1
+  ,stu_weyn
+  ,stu_emyn
+  ,stu_poyn
+  ,stu_smyn
+  ,stu_unln
+  ,stu_mocc
+  ,stu_soic
+  ,stu_soi1
+  ,stu_rcsi
+  ,stu_locn
+  ,stu_scl1
+  ,stu_nmcp
+  ,stu_isar
+  ,stu_toer
+  ,stu_ielr
+  ,stu_sslc
+  ,stu_ukba
+  ,stu_imac
+  ,stu_ohtc
+  ,stu_ohdc
+  ,stu_relb
+  ,stu_sxor
+  ,stu_gnid
+  ,stu_davf
+  ,stu_ocb1
+  ,stu_saas
+  ,stu_sasn
+  ,stu_said
+  ,stu_penn
+  ,stu_atyp
+  ,dpt_code
+  ,dpt_name
+  ,dpt_snam
+  ,fac_code
+  ,fac_name
+  ,fac_snam
+    from enrol_1 stu),
+student_enrolment_vw_as as
+ (select TUTOR_CODE
+        ,TUTOR_NAME
+        ,TUTOR_FIRSTNAME
+        ,TUTOR_SURNAME
+        ,ID_NUMBER
+        ,LATEST_ENROLMENT
+        ,ENROLMENT_STATUS
+        ,ENROLMENT_STATUS_DESC
+        ,COURSE_CODE
+        ,SITS_COURSE_CODE
+        ,DL_COURSE_FLAG
+        ,COURSE_YEAR
+        ,DEPARTMENT
+        ,COURSE_LEVEL
+        ,FACULTY
+        ,ACADEMIC_YEAR
+        ,STU_OCCURRENCE
+        ,ENROLMENT_START_DATE
+        ,ENROLMENT_END_DATE
+        ,REPEATER_FLAG
+        ,COURSE_START_DATE
+        ,COURSE_END_DATE
+        ,SPONSOR_FLAG
+        ,COURSE_LEADER_CODE
+        ,COURSE_LEADER_NAME
+        ,STUDENT_LEVEL
+        ,SCJ_EEND
+        ,ENTRY_QUAL
+        ,CRS_MOAC
+        ,MOA_NAME
+        ,MOA_FCMA
+        ,SCE_AYRC
+        ,crs_cgpc
+        ,sce_cred
+        ,enrolment_seq2 as sce_seq2
+        ,sce_scjc
+        ,SCE_OCCL
+        ,enrolment_fee_status
+        ,moa_udf2
+        ,stu_code
+        ,stu_srtn
+        ,stu_updd
+        ,stu_ucid
+        ,stu_sta1
+        ,stu_sta2
+        ,stu_sta3
+        ,stu_titl
+        ,stu_tlec
+        ,stu_surn
+        ,stu_prvs
+        ,stu_lasn
+        ,stu_fnm1
+        ,stu_fnm2
+        ,stu_fnm3
+        ,stu_fusd
+        ,stu_init
+        ,stu_name
+        ,stu_dob
+        ,stu_gend
+        ,stu_btch
+        ,stu_extr
+        ,stu_begd
+        ,stu_endd
+        ,stu_marc
+        ,stu_natc
+        ,stu_rsdt
+        ,stu_entd
+        ,stu_perm
+        ,stu_cobc
+        ,stu_ethc
+        ,stu_leac
+        ,stu_dsbc
+        ,stu_dsbr
+        ,stu_dsba
+        ,stu_hqlc
+        ,stu_sclc
+        ,stu_aa1c
+        ,stu_aa2c
+        ,stu_aa3c
+        ,stu_aa4c
+        ,stu_aa5c
+        ,stu_spoc
+        ,stu_ocbc
+        ,stu_sitc
+        ,stu_bldc
+        ,stu_romc
+        ,stu_fstc
+        ,stu_secc
+        ,stu_rlgc
+        ,stu_iacc
+        ,stu_ifcc
+        ,stu_farc
+        ,stu_puyn
+        ,stu_adid
+        ,stu_itno
+        ,stu_mvln
+        ,stu_mvpp
+        ,stu_nokn
+        ,stu_nokr
+        ,stu_nokt
+        ,stu_had1
+        ,stu_had2
+        ,stu_had3
+        ,stu_had4
+        ,stu_had5
+        ,stu_hapc
+        ,stu_hams
+        ,stu_uhoc
+        ,stu_htel
+        ,stu_hat2
+        ,stu_hat3
+        ,stu_hafn
+        ,stu_haem
+        ,stu_cad1
+        ,stu_cad2
+        ,stu_cad3
+        ,stu_cad4
+        ,stu_cad5
+        ,stu_capc
+        ,stu_cams
+        ,stu_ctel
+        ,stu_cat2
+        ,stu_cat3
+        ,stu_cafn
+        ,stu_caem
+        ,stu_bkbr
+        ,stu_bksc
+        ,stu_bkac
+        ,stu_sapx
+        ,stu_bsrn
+        ,stu_bkan
+        ,stu_scot
+        ,stu_esid
+        ,stu_nref
+        ,stu_ttrn
+        ,stu_codc
+        ,stu_ttac
+        ,stu_insc
+        ,stu_ylas
+        ,stu_ylai
+        ,stu_udf1
+        ,stu_udf2
+        ,stu_udf3
+        ,stu_nino
+        ,stu_ndep
+        ,stu_rfvc
+        ,stu_majsfc
+        ,stu_spo1
+        ,stu_unemp
+        ,stu_duun
+        ,stu_ssin
+        ,stu_autn
+        ,stu_suni
+        ,stu_vqrn
+        ,stu_lbid
+        ,stu_secl
+        ,stu_ldif
+        ,stu_wels
+        ,stu_nid1
+        ,stu_nid2
+        ,stu_uci2
+        ,stu_deps
+        ,stu_udf4
+        ,stu_udf5
+        ,stu_udf6
+        ,stu_udf7
+        ,stu_udf8
+        ,stu_udf9
+        ,stu_udfa
+        ,stu_udfb
+        ,stu_udfc
+        ,stu_udfd
+        ,stu_udfe
+        ,stu_udff
+        ,stu_udfg
+        ,stu_udfh
+        ,stu_udfi
+        ,stu_udfj
+        ,stu_udfk
+        ,stu_inem
+        ,stu_gmcn
+        ,stu_dphn
+        ,stu_nat1
+        ,stu_weyn
+        ,stu_emyn
+        ,stu_poyn
+        ,stu_smyn
+        ,stu_unln
+        ,stu_mocc
+        ,stu_soic
+        ,stu_soi1
+        ,stu_rcsi
+        ,stu_locn
+        ,stu_scl1
+        ,stu_nmcp
+        ,stu_isar
+        ,stu_toer
+        ,stu_ielr
+        ,stu_sslc
+        ,stu_ukba
+        ,stu_imac
+        ,stu_ohtc
+        ,stu_ohdc
+        ,stu_relb
+        ,stu_sxor
+        ,stu_gnid
+        ,stu_davf
+        ,stu_ocb1
+        ,stu_saas
+        ,stu_sasn
+        ,stu_said
+        ,stu_penn
+        ,stu_atyp
+        ,dpt_code
+        ,dpt_name
+        ,dpt_snam
+        ,fac_code
+        ,fac_name
+        ,fac_snam
+    from enrol_b),
+STUDENT_CURR_ENROLMENT_VW_AS as
+ (select /*+parallel(4) */
+   nvl(s.student_skey, '-1') student_skey
+  ,id_number
+  ,tutor_code
+  ,tutor_name
+  ,e.academic_year
+  ,sits_course_code
+  ,enrolment_status
+  ,enrolment_status_desc
+  ,nvl(c.course_skey, '-1') course_skey
+  ,c.course_desc
+  ,department
+  ,course_year
+  ,e.course_level
+  ,e.repeater_flag
+  ,e.course_leader_code
+  ,e.course_leader_name
+  ,e.student_level
+  ,e.entry_qual
+  ,e.enrolment_start_date
+  ,e.enrolment_end_date
+  ,e.course_start_date
+  ,e.course_end_date
+  ,e.CRS_MOAC as "MODE_OF_ATTENDANCE_CODE"
+   ,e.MOA_NAME as "MODE_OF_ATTENDANCE_NAME"
+   ,e.MOA_FCMA as "FUNDING_COUNCIL_MOA_CODE"
+   ,e.enrolment_fee_status
+   ,moa_udf2
+   --   ,moa_udf3
+   ,dl_course_flag
+   ,stu_code
+   ,stu_srtn
+   ,stu_updd
+   ,stu_ucid
+   ,stu_sta1
+   ,stu_sta2
+   ,stu_sta3
+   ,stu_titl
+   ,stu_tlec
+   ,stu_surn
+   ,stu_prvs
+   ,stu_lasn
+   ,stu_fnm1
+   ,stu_fnm2
+   ,stu_fnm3
+   ,stu_fusd
+   ,stu_init
+   ,stu_name
+   ,stu_dob
+   ,stu_gend
+   ,stu_btch
+   ,stu_extr
+   ,stu_begd
+   ,stu_endd
+   ,stu_marc
+   ,stu_natc
+   ,stu_rsdt
+   ,stu_entd
+   ,stu_perm
+   ,stu_cobc
+   ,stu_ethc
+   ,stu_leac
+   ,stu_dsbc
+   ,stu_dsbr
+   ,stu_dsba
+   ,stu_hqlc
+   ,stu_sclc
+   ,stu_aa1c
+   ,stu_aa2c
+   ,stu_aa3c
+   ,stu_aa4c
+   ,stu_aa5c
+   ,stu_spoc
+   ,stu_ocbc
+   ,stu_sitc
+   ,stu_bldc
+   ,stu_romc
+   ,stu_fstc
+   ,stu_secc
+   ,stu_rlgc
+   ,stu_iacc
+   ,stu_ifcc
+   ,stu_farc
+   ,stu_puyn
+   ,stu_adid
+   ,stu_itno
+   ,stu_mvln
+   ,stu_mvpp
+   ,stu_nokn
+   ,stu_nokr
+   ,stu_nokt
+   ,stu_had1
+   ,stu_had2
+   ,stu_had3
+   ,stu_had4
+   ,stu_had5
+   ,stu_hapc
+   ,stu_hams
+   ,stu_uhoc
+   ,stu_htel
+   ,stu_hat2
+   ,stu_hat3
+   ,stu_hafn
+   ,stu_haem
+   ,stu_cad1
+   ,stu_cad2
+   ,stu_cad3
+   ,stu_cad4
+   ,stu_cad5
+   ,stu_capc
+   ,stu_cams
+   ,stu_ctel
+   ,stu_cat2
+   ,stu_cat3
+   ,stu_cafn
+   ,stu_caem
+   ,stu_bkbr
+   ,stu_bksc
+   ,stu_bkac
+   ,stu_sapx
+   ,stu_bsrn
+   ,stu_bkan
+   ,stu_scot
+   ,stu_esid
+   ,stu_nref
+   ,stu_ttrn
+   ,stu_codc
+   ,stu_ttac
+   ,stu_insc
+   ,stu_ylas
+   ,stu_ylai
+   ,stu_udf1
+   ,stu_udf2
+   ,stu_udf3
+   ,stu_nino
+   ,stu_ndep
+   ,stu_rfvc
+   ,stu_majsfc
+   ,stu_spo1
+   ,stu_unemp
+   ,stu_duun
+   ,stu_ssin
+   ,stu_autn
+   ,stu_suni
+   ,stu_vqrn
+   ,stu_lbid
+   ,stu_secl
+   ,stu_ldif
+   ,stu_wels
+   ,stu_nid1
+   ,stu_nid2
+   ,stu_uci2
+   ,stu_deps
+   ,stu_udf4
+   ,stu_udf5
+   ,stu_udf6
+   ,stu_udf7
+   ,stu_udf8
+   ,stu_udf9
+   ,stu_udfa
+   ,stu_udfb
+   ,stu_udfc
+   ,stu_udfd
+   ,stu_udfe
+   ,stu_udff
+   ,stu_udfg
+   ,stu_udfh
+   ,stu_udfi
+   ,stu_udfj
+   ,stu_udfk
+   ,stu_inem
+   ,stu_gmcn
+   ,stu_dphn
+   ,stu_nat1
+   ,stu_weyn
+   ,stu_emyn
+   ,stu_poyn
+   ,stu_smyn
+   ,stu_unln
+   ,stu_mocc
+   ,stu_soic
+   ,stu_soi1
+   ,stu_rcsi
+   ,stu_locn
+   ,stu_scl1
+   ,stu_nmcp
+   ,stu_isar
+   ,stu_toer
+   ,stu_ielr
+   ,stu_sslc
+   ,stu_ukba
+   ,stu_imac
+   ,stu_ohtc
+   ,stu_ohdc
+   ,stu_relb
+   ,stu_sxor
+   ,stu_gnid
+   ,stu_davf
+   ,stu_ocb1
+   ,stu_saas
+   ,stu_sasn
+   ,stu_said
+   ,stu_penn
+   ,stu_atyp
+   ,dpt_code
+   ,dpt_name
+   ,dpt_snam
+   ,fac_code
+   ,fac_name
+   ,fac_snam
+    from bidw.dim_student s
+    left join student_enrolment_vw_as e
+      on e.id_number = to_char(s.student_id_bkey)
+    left join bidw.dim_course c
+      on e.sits_course_code = c.course_code
+     and e.academic_year = c.academic_year_yyyy
+   where ID_NUMBER is not null
+     and e.academic_year = (select academic_year from academic_year_as x))
+select * from STUDENT_CURR_ENROLMENT_VW_AS t;
+

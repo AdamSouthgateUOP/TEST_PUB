@@ -1,0 +1,116 @@
+﻿create materialized view DQ_RULE_9000_ADDED_NEW_MVW
+refresh force on demand
+as
+with rule_id as
+ (select rule_id_bkey
+        ,rule_id_skey
+    from dim_rules_engine dre
+   where dre.rule_id_skey = 1001000
+     and rule_enabled = 'Y'
+     and ((january = 1 and trim(to_char(trunc(sysdate), 'Month')) = 'January') or
+         (february = 1 and trim(to_char(trunc(sysdate), 'Month')) = 'February') or
+         (march = 1 and trim(to_char(trunc(sysdate), 'Month')) = 'March') or
+         (april = 1 and trim(to_char(trunc(sysdate), 'Month')) = 'April') or
+         (may = 1 and trim(to_char(trunc(sysdate), 'Month')) = 'May') or
+         (june = 1 and trim(to_char(trunc(sysdate), 'Month')) = 'June') or
+         (july = 1 and trim(to_char(trunc(sysdate), 'Month')) = 'July') or
+         (august = 1 and trim(to_char(trunc(sysdate), 'Month')) = 'August') or
+         (september = 1 and trim(to_char(trunc(sysdate), 'Month')) = 'September') or
+         (october = 1 and trim(to_char(trunc(sysdate), 'Month')) = 'October') or
+         (november = 1 and trim(to_char(trunc(sysdate), 'Month')) = 'November') or
+         (december = 1 and trim(to_char(trunc(sysdate), 'Month')) = 'December'))),
+lrd as
+ (select last_successful_run_datetime from dim_rules_engine dre where rule_id_skey = (select rule_id_skey from rule_id)),
+student_count as
+ (select /* +MATERIALIZE */
+   count(*) as total_student_count
+    from current_year_student_curr_enrolment_list_mvw),
+added as
+ (select 'Added' as record_status from dual),
+academic_year as
+ (select /* +MATERIALIZE */
+   t.academic_year_full_code
+  ,t.academic_year_skey
+    from bidw.dim_academic_year t
+   where t.academic_year_bkey =
+         (select x.academic_year from bidw.dim_date x where x.date_bkey = to_char(trunc(sysdate), 'DD/MM/YYYY'))),
+scej as
+ (select scj.scj_stuc id_number
+        ,scj.scj_crsc
+        ,scj.scj_ayrc
+        ,sce.sce_stuc
+        ,sce.sce_crsc
+        ,sce.sce_ayrc academic_year
+        ,sce.sce_seq2
+        ,scj.scj_seq2
+        ,dc.course_code
+        ,df.faculty_code
+        ,dd.department_code
+        ,row_number() over(partition by sce.sce_stuc, sce.sce_ayrc order by sce.sce_scjc desc, sce.sce_begd desc, sce.sce_blok desc, sce.sce_seq2 desc) rn
+    from srs_scj_stg scj
+    join srs_sce_stg sce
+      on scj.scj_code = sce.sce_scjc
+     and sce.sce_ayrc = (select academic_year_full_code from academic_year)
+    join bidw.dim_course dc
+      on sce.sce_crsc = dc.course_code
+    join bidw.dim_department dd
+      on dc.department_skey = dd.department_skey
+    join bidw.dim_faculty df
+      on dd.faculty_skey = df.faculty_skey),
+cfda as
+ (select * from scej where rn = 1),
+today_data as
+ (select to_char(STU_CODE) as today_table_key1
+        ,to_char(STU_CODE) as today_table_key2
+    from CURRENT_YEAR_STUDENT_CURR_ENROLMENT_LIST_MVW
+   where  NVL(STU_TITL,'!') NOT IN ( SELECT TTL_CODE FROM SRS_TTL_STG)),
+yesterday_data as
+ (select yd.table_key  as yesterday_table_key1
+        ,yd.student_id as yesterday_table_key2
+    from fact_rules_daily_results_detail yd
+   where results_date = (select last_successful_run_datetime from lrd)
+     and yd.rule_id_skey = (select rule_id_skey from rule_id)),
+candidates as
+ (select td.today_table_key1
+        ,td.today_table_key2
+    from today_data td
+  minus
+  select yd.yesterday_table_key1
+        ,yd.yesterday_table_key2
+    from yesterday_data yd
+   order by today_table_key2),
+results_date as
+ (select trunc(sysdate) as results_date from dual),
+candidates_2 as
+ (select rd.results_date     as results_date
+        ,ri.rule_id_bkey     as rule_id
+        ,x.today_table_key1  as table_key
+        ,x.today_table_key2  as student_id
+        ,y.course_code       as course_code
+        ,y.department_code   as department_code
+        ,y.faculty_code      as faculty_code
+        ,y.academic_year     as academic_year
+        ,total_student_count as total_count
+        ,rs.record_status    as record_status
+    from candidates x
+    join cfda y
+      on (y.id_number = x.today_table_key2)
+   cross join results_date rd
+   cross join academic_year ay
+   cross join added rs
+   cross join rule_id ri
+   cross join student_count)
+select results_date
+      ,y.rule_id
+      ,y.table_key
+      ,course_code
+      ,department_code
+      ,faculty_code
+      ,student_id
+      ,record_status
+      ,academic_year
+      ,total_count
+  from candidates_2 y;
+grant select on DQ_RULE_9000_ADDED_NEW_MVW to ODIADMIN;
+
+

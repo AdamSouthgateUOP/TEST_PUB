@@ -1,0 +1,82 @@
+﻿create materialized view DQ_RULE_8100_ADDED_MVW
+refresh force on demand
+as
+with rule_id as
+ (select rule_id_bkey, rule_id_skey from dim_rules_engine where rule_id_skey = 1000500 and rule_enabled = 'Y'
+     and (
+         (january = 1 and trim(to_char(trunc(sysdate),'Month')) = 'January') or
+         (february = 1 and trim(to_char(trunc(sysdate),'Month')) = 'February') or
+         (march = 1 and trim(to_char(trunc(sysdate),'Month')) = 'March') or
+         (april = 1 and trim(to_char(trunc(sysdate),'Month')) = 'April') or
+         (may = 1 and trim(to_char(trunc(sysdate),'Month')) = 'May') or
+         (june = 1 and trim(to_char(trunc(sysdate),'Month')) = 'June') or
+         (july = 1 and trim(to_char(trunc(sysdate),'Month')) = 'July') or
+         (august = 1 and trim(to_char(trunc(sysdate),'Month')) = 'August') or
+         (september = 1 and trim(to_char(trunc(sysdate),'Month')) = 'September') or
+         (october = 1 and trim(to_char(trunc(sysdate),'Month')) = 'October') or
+         (november = 1 and trim(to_char(trunc(sysdate),'Month')) = 'November') or
+         (december = 1 and trim(to_char(trunc(sysdate),'Month')) = 'December'))
+         ),
+    lrd as
+      (select last_successful_run_datetime from dim_rules_engine dre where rule_id_bkey = (select RULE_ID_bKEY from RULE_ID)),
+Added as
+ (select 'Added' as record_status from dual),
+academic_year as
+ (select /* +MATERIALIZE */
+   t.academic_year_full_code
+  ,t.academic_year_skey
+    from bidw.dim_academic_year t
+   where t.academic_year_bkey =
+         (select x.academic_year from bidw.dim_date x where x.date_bkey = to_char(trunc(sysdate), 'DD/MM/YYYY'))),
+LOOKUP_LIST AS
+ (SELECT MOD.MOD_CODE
+    FROM INS_MOD_STG MOD
+    JOIN CAM_MAV_STG MAV
+      ON MAV.MOD_CODE = MOD.MOD_CODE
+   WHERE MOD.MOD_IUSE = 'Y'
+     AND MAV.AYR_CODE = (SELECT ACADEMIC_YEAR_FULL_CODE FROM ACADEMIC_YEAR)
+   GROUP BY MOD.MOD_CODE
+   ORDER BY MOD.MOD_CODE),
+LOOKUP_COUNT AS
+ (SELECT COUNT(*) AS TOTAL_LOOKUP_COUNT FROM LOOKUP_LIST), 
+today_data as
+ (select to_char(MOD_CODE) as today_table_key1
+    from DQ_8100_MVW
+     where  MOD_CODE !='XX'),
+yesterday_data as
+ (select table_key1   as yesterday_table_key1
+    from FACT_RULES_DAILY_RESULTS_DETAIL yd
+   where results_date = (select last_successful_run_datetime from lrd)
+     and rule_id_skey = (select rule_id_skey from rule_id)),
+candidates as
+ (select Td.today_table_key1
+    from TODAY_DATA td
+  minus
+  select YD.YESTERDAY_table_key1
+    from YESTERDAY_DATA YD
+   order by today_table_key1),
+results_date as
+ (select trunc(sysdate) as results_date from dual),
+candidates_2 as
+ (select rd.results_date    as results_date
+        ,ri.rule_id_bkey    as rule_id
+        ,x.today_table_key1  as table_key1
+        ,total_lookup_count as total_count
+        ,rs.record_status   as record_status
+        ,ay.academic_year_full_code as academic_year
+    from candidates x
+   cross join results_date rd
+   cross join academic_year ay
+   cross join Added rs
+   cross join rule_id ri
+   cross join lookup_count)
+select results_date
+      ,y.rule_id
+      ,y.table_key1
+      ,record_status
+      ,total_count
+      ,academic_year
+  from candidates_2 y;
+grant select on DQ_RULE_8100_ADDED_MVW to ODIADMIN;
+
+

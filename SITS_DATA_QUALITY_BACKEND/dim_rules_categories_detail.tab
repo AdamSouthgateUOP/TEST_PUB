@@ -1,0 +1,9 @@
+﻿create table DIM_RULES_CATEGORIES_DETAIL
+(
+  rule_id_skey     NUMBER not null,
+  category_id_skey NUMBER not null
+)
+;
+alter table DIM_RULES_CATEGORIES_DETAIL
+  add constraint DRCDNTEST_PRIM_KEY primary key (RULE_ID_SKEY, CATEGORY_ID_SKEY);
+

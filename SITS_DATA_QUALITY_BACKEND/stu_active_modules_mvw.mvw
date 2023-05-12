@@ -1,0 +1,8 @@
+﻿create materialized view STU_ACTIVE_MODULES_MVW
+refresh force on demand
+as
+select *
+FROM stu_active_modules_vw;
+grant select on STU_ACTIVE_MODULES_MVW to ODIADMIN;
+
+

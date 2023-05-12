@@ -1,0 +1,51 @@
+﻿create materialized view DQ_8040_MVW
+refresh force on demand
+as
+with institutional_email_all as
+ (select madd.add_adid
+        ,madd.add_emad as term_email
+        ,madd.add_begd as term_email_add_begd
+        ,madd.add_endd as term_email_add_endd
+        ,row_number() over(partition by madd.add_adid order by madd.add_adid) as rn
+    from men_add_stg madd
+   where madd.add_atyc = 'TERM'
+     and madd.add_actv = 'C'
+     and nvl(madd.add_begd, trunc(sysdate)) <= trunc(sysdate)
+     and nvl(madd.add_endd, trunc(sysdate)) >= trunc(sysdate)),
+institutional_email as
+ (select * from institutional_email_all where rn = 1),
+home_email_all as
+ (select madd.add_adid
+        ,madd.add_emad as home_email
+        ,madd.add_begd as home_email_add_begd
+        ,madd.add_endd as home_email_add_endd
+        ,madd.add_alte as home_email_alt_email
+        ,row_number() over(partition by madd.add_adid order by madd.add_adid) as rn
+    from men_add_stg madd
+   where madd.add_atyc = 'HOME'
+     and madd.add_actv = 'C'
+     and nvl(madd.add_begd, trunc(sysdate)) <= trunc(sysdate)
+     and nvl(madd.add_endd, trunc(sysdate)) >= trunc(sysdate)),
+home_email as
+ (select * from home_email_all where rn = 1),
+current_students as
+ (select * from current_year_student_curr_enrolment_list_mvw),
+student_institutional_emails as
+ (select * from current_students cx left outer join institutional_email ie on ie.add_adid = cx.id_number),
+student_home_emails as
+ (select * from current_students cx left outer join home_email he on he.add_adid = cx.id_number)
+select cx.id_number
+      ,cx.enrolment_status
+      ,term_email
+      ,term_email_add_begd
+      ,term_email_add_endd
+      ,home_email
+      ,home_email_add_begd
+      ,home_email_add_endd
+      ,home_email_alt_email
+  from current_students cx
+  left join student_institutional_emails sie
+    on sie.add_adid = cx.id_number
+  left join student_home_emails she
+    on she.add_adid = cx.id_number;
+

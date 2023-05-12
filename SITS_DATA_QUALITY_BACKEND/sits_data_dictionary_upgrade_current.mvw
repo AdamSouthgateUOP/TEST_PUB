@@ -1,0 +1,60 @@
+﻿create materialized view SITS_DATA_DICTIONARY_UPGRADE_CURRENT
+refresh force on demand
+as
+select d.dct_code dictionary
+      ,e.ent_prfx || e.ent_code table_name
+      ,e.ent_name
+      ,f.fld_seqn
+      ,f.fld_code column_name
+      ,f.fld_name description
+      ,case f.fld_type
+         when 'S' then
+          'Character'
+         when 'D' then
+          'Date'
+         when 'N' then
+          'Numeric'
+         when 'T' then
+          'Timestamp'
+         when 'E' then
+          'Date and Time'
+         when 'B' then
+          'Boolean'
+         when 'R' then
+          'BLOB'
+         when 'L' then
+          'Linear Date and/or Time field'
+         when 'F' then
+          'Currency'
+         when 'I' then
+          'Image'
+       end as field_type
+      ,f.fld_type
+      ,f.fld_lgth
+      ,u.udf_name
+      ,case u.udf_type
+         when 'D' then
+          'Date'
+         when 'N' then
+          'Numeric'
+         else
+          u.udf_type
+       end as udf_field_type
+  from men_dct d
+  join men_ent e
+    on d.dct_code = e.ent_dctc
+  join men_fld f
+    on e.ent_dctc = f.fld_dctc
+   and e.ent_code = f.fld_entc
+  left join men_fld lf
+    on lf.fld_dctc = f.fld_dct1
+   and lf.fld_entc = f.fld_ent1
+   and lf.fld_code = f.fld_fld1
+  left join men_ent le
+    on lf.fld_dctc = le.ent_dctc
+   and lf.fld_entc = le.ent_code
+  left join men_udf u
+    on f.fld_dctc = u.udf_dctc
+   and f.fld_entc = u.udf_entc
+   and f.fld_code = u.udf_fldc;
+

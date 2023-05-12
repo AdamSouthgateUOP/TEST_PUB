@@ -1,0 +1,12 @@
+﻿create materialized view DQ_8070_MVW
+refresh force on demand
+as
+select *
+  from current_year_student_curr_enrolment_list_mvw x
+  left join srs_snk_stg y
+    on x.stu_code = y.snk_stuc
+   and y.snk_seqn = 1
+   where x.enrolment_status != 'WDR';
+grant select on DQ_8070_MVW to ODIADMIN;
+
+

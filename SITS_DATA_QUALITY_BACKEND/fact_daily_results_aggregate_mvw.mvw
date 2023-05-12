@@ -1,0 +1,269 @@
+﻿create materialized view FACT_DAILY_RESULTS_AGGREGATE_MVW
+refresh force on demand
+as
+with academic_year as
+ (select /* +MATERIALIZE */
+   x.academic_year
+  ,x.date_time_start
+  ,t.academic_year_full_code
+  ,t.academic_year_skey
+    from bidw.dim_academic_year t
+    join bidw.dim_date x
+      on (x.academic_year = t.academic_year_bkey)),
+faculty_count as
+ (select /* +MATERIALIZE */
+   frsd.results_date
+  ,bdf.faculty_skey
+  ,count(*) as faculty_count
+    from fact_rules_students_detail frsd
+    join bidw.dim_course bdc
+      on bdc.course_skey = frsd.course_skey
+    join bidw.dim_academic_year bay
+      on bay.academic_year_full_code = bdc.academic_year
+    join bidw.dim_department bdd
+      on bdd.department_skey = bdc.department_skey
+     and bdd.academic_year = bay.academic_year_full_code
+    join bidw.dim_faculty bdf
+      on bdf.faculty_skey = bdd.faculty_skey
+   group by results_date
+           ,bdf.faculty_skey
+   order by results_date
+           ,bdf.faculty_skey),
+department_count as
+ (select /* +MATERIALIZE */
+   frsd.results_date
+  ,count(*) as department_count
+  ,bdd.department_skey
+  ,bdf.faculty_skey
+    from fact_rules_students_detail frsd
+    join bidw.dim_course bdc
+      on bdc.course_skey = frsd.course_skey
+    join bidw.dim_academic_year bay
+      on bay.academic_year_full_code = bdc.academic_year
+    join bidw.dim_department bdd
+      on bdd.department_skey = bdc.department_skey
+    join bidw.dim_faculty bdf
+      on bdf.faculty_skey = bdd.faculty_skey
+   group by frsd.results_date
+           ,bdd.department_skey
+           ,bdf.faculty_skey
+   order by frsd.results_date
+           ,bdd.department_skey
+           ,bdf.faculty_skey),
+course_count as
+ (select /* +MATERIALIZE */
+   frsd.results_date
+  ,bdf.faculty_skey
+  ,bdd.department_skey
+  ,bdc.course_skey
+  ,count(*) as course_count
+    from fact_rules_students_detail frsd
+    join bidw.dim_course bdc
+      on bdc.course_skey = frsd.course_skey
+    join bidw.dim_academic_year bay
+      on bay.academic_year_full_code = bdc.academic_year
+    join bidw.dim_department bdd
+      on bdd.department_skey = bdc.department_skey
+    join bidw.dim_faculty bdf
+      on bdf.faculty_skey = bdd.faculty_skey
+   group by frsd.results_date
+           ,bdf.faculty_skey
+           ,bdd.department_skey
+           ,bdc.course_skey
+   order by bdf.faculty_skey
+           ,bdd.department_skey
+           ,bdc.course_skey),
+results_non_zero as
+ (select results_date
+        ,rule_id_skey
+        ,academic_year_skey
+        ,faculty_skey
+        ,department_skey
+        ,course_skey
+        ,nvl(added_count, 0) as added_count
+        ,nvl(open_count, 0) as open_count
+        ,nvl(closed_count, 0) as closed_count
+    from (select frdrd.results_date
+                ,frdrd.rule_id_skey
+                ,frdrd.record_status
+                ,bay.academic_year_skey
+                ,bdf.faculty_skey
+                ,bdd.department_skey
+                ,bdc.course_skey
+                ,nvl(count(*), 0) as x
+            from fact_rules_daily_results_detail frdrd
+            join bidw.dim_course bdc
+              on bdc.course_skey = frdrd.course_skey
+            join bidw.dim_department bdd
+              on bdd.department_skey = bdc.department_skey
+            join bidw.dim_faculty bdf
+              on bdf.faculty_skey = bdd.faculty_skey
+            join bidw.dim_academic_year bay
+              on bay.academic_year_full_code = bdc.academic_year
+           group by frdrd.results_date
+                   ,frdrd.rule_id_skey
+                   ,frdrd.record_status
+                   ,bay.academic_year_skey
+                   ,bdf.faculty_skey
+                   ,bdf.faculty_short_name
+                   ,bdd.department_skey
+                   ,bdd.department_name
+                   ,bdc.course_skey
+                   ,bdc.course_skey
+           order by frdrd.results_date
+                   ,frdrd.rule_id_skey
+                   ,frdrd.record_status
+                   ,bay.academic_year_skey
+                   ,bdf.faculty_skey
+                   ,bdf.faculty_short_name
+                   ,bdd.department_skey
+                   ,bdd.department_name
+                   ,bdc.course_skey
+                   ,bdc.course_skey)
+  pivot(sum(x)
+     for record_status in('Added' added_count, 'Open' open_count, 'Closed' closed_count))
+   order by results_date
+           ,rule_id_skey
+           ,academic_year_skey
+           ,faculty_skey
+           ,department_skey
+           ,course_skey),
+all_results_dates as
+ (select t.results_date from fact_rules_daily_results_detail t group by t.results_date order by t.results_date),
+all_rules as
+ (select rule_id_skey from dim_rules_engine),
+results_zero as
+ (select bay.academic_year_skey
+        ,bdf.faculty_skey
+        ,bdd.department_skey
+        ,bdc.course_skey
+        ,0                      as added_count
+        ,0                      as open_count
+        ,0                      as closed_count
+    from bidw.dim_faculty bdf
+    join bidw.dim_department bdd
+      on bdd.faculty_skey = bdf.faculty_skey
+    join bidw.dim_course bdc
+      on bdc.department_skey = bdd.department_skey
+    join bidw.dim_academic_year bay
+      on bay.academic_year_full_code = bdc.academic_year),
+zero_counts_all_dates_rules as
+ (select ard.results_date
+        ,ar.rule_id_skey
+        ,rz.academic_year_skey
+        ,rz.faculty_skey
+        ,rz.department_skey
+        ,rz.course_skey
+        ,rz.added_count
+        ,rz.open_count
+        ,rz.closed_count
+    from results_zero rz
+   cross join all_results_dates ard
+   cross join all_rules ar
+   order by results_date),
+rules_by_date as
+ (select dr.results_date
+        ,dr.rule_id
+        ,dren.rule_id_skey
+    from daily_results dr
+    join dim_rules_engine dren
+      on dren.rule_id_bkey = dr.rule_id
+   group by dr.results_date
+           ,dr.rule_id
+           ,dren.rule_id_skey
+   order by dr.results_date
+           ,dr.rule_id
+           ,dren.rule_id_skey),
+zero_counts_by_dates_rules as
+ (select zcadr.results_date
+        ,zcadr.rule_id_skey
+        ,academic_year_skey
+        ,faculty_skey
+        ,department_skey
+        ,course_skey
+        ,added_count
+        ,open_count
+        ,closed_count
+    from zero_counts_all_dates_rules zcadr
+    join rules_by_date rbd
+      on (rbd.results_date = zcadr.results_date and rbd.rule_id = zcadr.rule_id_skey)),
+zero_only as
+ (select x.results_date
+        ,x.rule_id_skey
+        ,x.academic_year_skey
+        ,x.faculty_skey
+        ,x.department_skey
+        ,x.course_skey
+        ,added_count
+        ,open_count
+        ,closed_count
+    from zero_counts_all_dates_rules x
+    join academic_year ay
+      on ay.academic_year_skey = x.academic_year_skey
+    join bidw.dim_course bdc
+      on (bdc.course_skey = x.course_skey and ay.academic_year_full_code = bdc.academic_year and ay.date_time_start = x.results_date)
+   where (x.results_date, x.rule_id_skey, x.academic_year_skey, x.faculty_skey, x.department_skey, x.course_skey) not in
+         (select y.results_date
+                ,y.rule_id_skey
+                ,y.academic_year_skey
+                ,y.faculty_skey
+                ,y.department_skey
+                ,y.course_skey
+            from results_non_zero y)),
+main_query as
+ (select *
+    from zero_only
+  union
+  select *
+    from results_non_zero x
+   order by 1
+           ,2
+           ,3
+           ,4
+           ,5
+           ,6)
+select x.results_date
+      ,x.rule_id_skey
+      ,x.course_skey
+      ,nvl(y.faculty_count, 0) as faculty_student_count
+      ,nvl(z.department_count, 0) as department_student_count
+      ,nvl(w.course_count, 0) as course_student_count
+      ,x.academic_year_skey
+      ,x.added_count
+      ,x.open_count
+      ,x.closed_count
+      ,(("ADDED_COUNT" + "OPEN_COUNT") / nvl(y.faculty_count, 0) * 100) as faculty_student_error_percent
+       ,(("ADDED_COUNT" + "OPEN_COUNT") / case nvl(z.department_count, 0)
+         when 0 then
+          1
+         else
+          nvl(z.department_count, 0)
+       end * 100) as department_student_error_percent
+       ,(("ADDED_COUNT" + "OPEN_COUNT") / case nvl(w.course_count, 0)
+         when 0 then
+          1
+         else
+          nvl(w.course_count, 0)
+       end * 100) as course_student_error_percent
+       ,(100 - ("ADDED_COUNT" + "OPEN_COUNT") / nvl(y.faculty_count, 0) * 100) as faculty_student_correct_percent
+       ,(100 - ("ADDED_COUNT" + "OPEN_COUNT") / case nvl(z.department_count, 0)
+         when 0 then
+          1
+         else
+          nvl(z.department_count, 0)
+       end * 100) as department_student_correct_percent
+       ,(100 - ("ADDED_COUNT" + "OPEN_COUNT") / case nvl(w.course_count, 0)
+         when 0 then
+          1
+         else
+          nvl(w.course_count, 0)
+       end * 100) as course_student_correct_percent
+  from main_query x
+  join faculty_count y
+    on (y.faculty_skey = x.faculty_skey and y.results_date = x.results_date)
+  left join department_count z
+    on (z.faculty_skey = x.faculty_skey and z.department_skey = x.department_skey and z.results_date = x.results_date)
+  left join course_count w
+    on (z.faculty_skey = x.faculty_skey and z.department_skey = x.department_skey and w.course_skey = x.course_skey and
+       w.results_date = x.results_date);
+

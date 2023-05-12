@@ -1,0 +1,173 @@
+﻿create materialized view FACT_DAILY_RESULTS_MODULE_AGGREGATE_MVW
+refresh force on demand
+as
+with academic_year as
+ (select /* +MATERIALIZE */
+   x.academic_year
+  ,x.date_time_start
+  ,t.academic_year_full_code
+  ,t.academic_year_skey
+    from bidw.dim_academic_year t
+    join bidw.dim_date x
+      on (x.academic_year = t.academic_year_bkey)),
+module_count as
+ (select /* +MATERIALIZE */
+   frmd.results_date
+  ,bdm.module_skey
+  ,count(*) as module_count
+    from fact_rules_module_detail frmd
+    join bidw.dim_module bdm
+      on bdm.module_bkey = frmd.mod_code
+   group by frmd.results_date
+           ,bdm.module_skey
+   order by frmd.results_date
+           ,bdm.module_skey),
+results_non_zero as
+ (select results_date
+        ,results_date_skey
+        ,rule_id_skey
+        ,academic_year_skey
+        ,module_skey
+        ,nvl(added_count, 0) as added_count
+        ,nvl(open_count, 0) as open_count
+        ,nvl(closed_count, 0) as closed_count
+    from (select frdrd.results_date
+                ,frdrd.results_date_skey
+                ,frdrd.rule_id_skey
+                ,frdrd.record_status
+                ,frdrd.table_skey1
+                ,bay.academic_year_skey
+                ,bdm.module_skey
+                ,nvl(count(*), 0) as x
+            from fact_rules_daily_results_detail frdrd
+            join bidw.dim_date dd
+              on dd.date_skey = frdrd.results_date_skey
+            join bidw.dim_academic_year bay
+              on bay.academic_year_bkey = dd.academic_year
+            join bidw.dim_module bdm
+              on bdm.module_bkey = frdrd.table_key1
+           where frdrd.rules_type_skey = 10000050
+           group by frdrd.results_date
+                   ,frdrd.results_date_skey
+                   ,frdrd.rule_id_skey
+                   ,frdrd.record_status
+                   ,frdrd.table_skey1
+                   ,bay.academic_year_skey
+                   ,bdm.module_skey
+           order by frdrd.results_date
+                   ,frdrd.results_date_skey
+                   ,frdrd.rule_id_skey
+                   ,frdrd.record_status
+                   ,frdrd.table_skey1
+                   ,bay.academic_year_skey
+                   ,bdm.module_skey)
+  pivot(sum(x)
+     for record_status in('Added' added_count, 'Opened' open_count, 'Closed' closed_count))
+   order by results_date
+           ,results_date_skey
+           ,rule_id_skey
+           ,academic_year_skey),
+all_results_dates as
+ (select t.results_date
+        ,t.results_date_skey
+    from fact_rules_daily_results_detail t
+   where t.rules_type_skey = 10000050
+   group by t.results_date
+           ,t.results_date_skey
+   order by t.results_date
+           ,t.results_date_skey),
+all_rules as
+ (select rule_id_skey from dim_rules_engine dre where dre.rule_type = 'M'),
+results_zero as
+ (select bay.academic_year_skey
+        ,bdm.module_skey
+        ,0                      as added_count
+        ,0                      as open_count
+        ,0                      as closed_count
+    from bidw.dim_module bdm
+   cross join bidw.dim_academic_year bay),
+zero_counts_all_dates_rules as
+ (select ard.results_date
+        ,ard.results_date_skey
+        ,ar.rule_id_skey
+        ,rz.academic_year_skey
+        ,rz.module_skey
+        ,rz.added_count
+        ,rz.open_count
+        ,rz.closed_count
+    from results_zero rz
+   cross join all_results_dates ard
+   cross join all_rules ar
+   order by results_date),
+rules_by_date as
+ (select dr.results_date
+        ,dr.results_date_skey
+        ,dren.rule_id_skey
+    from fact_rules_daily_results_detail dr
+    join dim_rules_engine dren
+      on dren.rule_id_skey = dr.rule_id_skey
+   where dr.rules_type_skey = 10000050
+   group by dr.results_date
+           ,dr.results_date_skey
+           ,dren.rule_id_skey
+   order by dr.results_date
+           ,dr.results_date_skey
+           ,dren.rule_id_skey),
+zero_counts_by_dates_rules as
+ (select zcadr.results_date
+        ,zcadr.results_date_skey
+        ,zcadr.rule_id_skey
+        ,academic_year_skey
+        ,module_skey
+        ,added_count
+        ,open_count
+        ,closed_count
+    from zero_counts_all_dates_rules zcadr
+    join rules_by_date rbd
+      on (rbd.results_date = zcadr.results_date and rbd.rule_id_skey = zcadr.rule_id_skey)),
+zero_only as
+ (select results_date
+        ,results_date_skey
+        ,rule_id_skey
+        ,x.academic_year_skey
+        ,module_skey
+        ,added_count
+        ,open_count
+        ,closed_count
+    from zero_counts_by_dates_rules x
+    join academic_year ay
+      on ay.academic_year_skey = x.academic_year_skey
+    join bidw.dim_course bdc
+      on (ay.academic_year_full_code = bdc.academic_year and ay.date_time_start = x.results_date)
+   where (x.results_date, x.results_date_skey, x.rule_id_skey, x.academic_year_skey) not in
+         (select y.results_date
+                ,y.results_date_skey
+                ,y.rule_id_skey
+                ,y.academic_year_skey
+            from results_non_zero y)),
+main_query as
+ ( select *
+      from zero_only
+    union
+  select *
+    from results_non_zero x
+   order by 1
+            ,2
+            ,3
+            ,4
+            ,5
+            ,6)
+select x.results_date
+      ,x.results_date_skey
+      ,x.rule_id_skey
+      ,x.module_skey
+       --      ,nvl(y.module_count, 0) as module_count
+      ,x.academic_year_skey
+      ,x.added_count
+      ,x.open_count
+      ,x.closed_count
+  from main_query x
+  join module_count y
+    on (y.module_skey = x.module_skey /*and y.results_date = x.results_date*/
+       );
+

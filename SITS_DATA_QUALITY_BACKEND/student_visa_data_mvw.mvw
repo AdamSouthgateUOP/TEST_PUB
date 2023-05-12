@@ -1,0 +1,56 @@
+﻿create materialized view STUDENT_VISA_DATA_MVW
+refresh force on demand
+as
+with VIS_MAX as
+ (select svs.vis_stuc
+        ,svs.vis_ppts
+        ,svs.vis_seqn
+        ,svs.vis_visn
+        ,svs.vis_stat
+        ,svs.vis_appd
+        ,svs.vis_issd
+        ,svs.vis_begd
+        ,svs.vis_expd
+        ,svs.vis_rend
+        ,svs.vis_iuse
+        ,svs.vis_udf1
+        ,svs.vis_udf2
+        ,svs.vis_udf3
+        ,svs.vis_udf4
+        ,svs.vis_udf5
+        ,svs.vis_udf6
+        ,svs.vis_udf7
+        ,svs.vis_udf8
+        ,svs.vis_udf9
+        ,svs.vis_udfa
+        ,svs.vis_udfb
+        ,svs.vis_udfc
+        ,svs.vis_udfd
+        ,svs.vis_udfe
+        ,svs.vis_udff
+        ,svs.vis_udfg
+        ,svs.vis_udfh
+        ,svs.vis_udfi
+        ,svs.vis_udfj
+        ,svs.vis_udfk
+        ,svs.vis_vrfd
+        ,svs.vis_prsc
+        ,svs.vis_type
+        ,svs.vis_errd
+        ,svs.vis_stae
+        ,svs.vis_crid
+        ,svs.vis_spyn
+        ,svs.vis_note
+        ,row_number() over(partition by svs.vis_stuc order by svs.vis_stuc, svs.vis_seqn desc) as rn
+    from srs_vis_stg svs
+   where svs.vis_iuse = 'Y'
+   order by svs.vis_stuc
+           ,svs.vis_seqn),
+vis_max_1 as
+ (select * from VIS_MAX where rn = 1),
+current_stu as
+ (select * from CURRENT_YEAR_STUDENT_CURR_ENROLMENT_LIST_MVW x),
+all_data as
+ (select * from current_stu t left outer join vis_max_1 u on u.vis_stuc = t.stu_code)
+select * from all_data x;
+

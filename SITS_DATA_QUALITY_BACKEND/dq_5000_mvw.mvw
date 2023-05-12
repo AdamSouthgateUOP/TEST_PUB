@@ -1,0 +1,10 @@
+﻿create materialized view DQ_5000_MVW
+refresh force on demand
+as
+select x.home_email
+      ,y.*
+  from students_vw x
+  join CURRENT_YEAR_STUDENT_CURR_ENROLMENT_LIST_MVW y on x.ID_NUMBER = y.id_number;
+grant select on DQ_5000_MVW to ODIADMIN with grant option;
+
+

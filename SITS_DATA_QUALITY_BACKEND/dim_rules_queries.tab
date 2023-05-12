@@ -1,0 +1,34 @@
+﻿create table DIM_RULES_QUERIES
+(
+  rule_id_skey                          NUMBER not null,
+  null_check                            VARCHAR2(1) default 'N' not null,
+  dupe_check                            VARCHAR2(1) default 'N' not null,
+  invalid_data_check                    VARCHAR2(1) default 'N' not null,
+  table_to_validate                     VARCHAR2(255) not null,
+  table_key                             VARCHAR2(255) not null,
+  field_to_validate                     VARCHAR2(255),
+  invalid_data_where_clause             VARCHAR2(4000),
+  dupe_field_list                       VARCHAR2(4000),
+  table_key_desc                        VARCHAR2(255),
+  null_where_clause                     VARCHAR2(4000),
+  student_id_field                      VARCHAR2(24),
+  invalid_data_table_count_where_clause VARCHAR2(4000),
+  dupe_where_clause                     VARCHAR2(4000),
+  check_type                            as (CASE  WHEN "NULL_CHECK"='Y' THEN 'Null Data' WHEN "DUPE_CHECK"='Y' THEN 'Duplicate' WHEN "INVALID_DATA_CHECK"='Y' THEN 'Invalid Data' ELSE 'Error' END),
+  entity_type                           as (CASE  WHEN "STUDENT_ENTITY"='Y' THEN 'Student' WHEN "LOOKUP_ENTITY"='Y' THEN 'Lookup' ELSE 'Error' END),
+  lookup_table_name                     VARCHAR2(255),
+  lookup_table_count_query              VARCHAR2(4000),
+  lookup_course                         VARCHAR2(1),
+  lookup_module                         VARCHAR2(1),
+  lookup_type                           as (CASE  WHEN ("LOOKUP_ENTITY"='Y' AND "LOOKUP_COURSE"='Y' AND "LOOKUP_MODULE"='N') THEN 'Course' WHEN ("LOOKUP_ENTITY"='Y' AND "LOOKUP_COURSE"='N' AND "LOOKUP_MODULE"='Y') THEN 'Module' WHEN "LOOKUP_ENTITY"='N' THEN 'N/A' ELSE 'Error' END),
+  query_skey                            NUMBER,
+  added_query                           CLOB,
+  opened_query                          CLOB,
+  closed_query                          CLOB,
+  student_entity                        VARCHAR2(1) invisible,
+  lookup_entity                         VARCHAR2(1) invisible
+)
+;
+alter table DIM_RULES_QUERIES
+  add constraint DIM_RULES_QUERY_PRIMARY_KEY primary key (RULE_ID_SKEY);
+

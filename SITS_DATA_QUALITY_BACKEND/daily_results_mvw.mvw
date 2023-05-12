@@ -1,0 +1,75 @@
+﻿create materialized view DAILY_RESULTS_MVW
+refresh force on demand
+as
+with students as
+ (select dr.results_date
+        ,dre.rule_id_skey
+        ,dr.record_status
+        ,dr.academic_year
+        ,dr.total_count
+        ,bds.student_skey      as table_skey1
+        ,bdc.course_skey       as table_skey2
+        ,dr.rule_type
+        ,ay.academic_year_skey
+        ,drt.rules_type_skey
+        ,dd.date_skey          as results_date_skey
+    from daily_results dr
+    join bidw.dim_student bds
+      on bds.student_id_bkey = dr.table_key1
+    join bidw.dim_course bdc
+      on bdc.course_code = dr.course_code
+     and bdc.academic_year = dr.academic_year
+    join dim_rules_engine dre
+      on dre.rule_id_bkey = dr.rule_id
+    join bidw.dim_academic_year ay
+      on ay.academic_year_full_code = dr.academic_year
+    join bidw.dim_date dd
+      on dd.date_time_start = dr.results_date
+    join dim_rules_type drt
+      on drt.rules_type_bkey = dr.rule_type
+   where dr.rule_type = 'S'
+     and results_date = trunc(sysdate)),
+modules as
+ (select dr.results_date
+        ,dre.rule_id_skey
+        ,dr.record_status
+        ,dr.academic_year
+        ,dr.total_count
+        ,bdm.module_skey       as table_skey1
+        ,-1                    as table_skey2
+        ,dr.rule_type
+        ,ay.academic_year_skey
+        ,drt.rules_type_skey
+        ,dd.date_skey          as results_date_skey
+    from daily_results dr
+    join bidw.dim_module bdm
+      on bdm.module_bkey = dr.table_key1
+    join dim_rules_engine dre
+      on dre.rule_id_bkey = dr.rule_id
+    join bidw.dim_academic_year ay
+      on ay.academic_year_full_code = dr.academic_year
+    join bidw.dim_date dd
+      on dd.date_time_start = dr.results_date
+    join dim_rules_type drt
+      on drt.rules_type_bkey = dr.rule_type
+   where dr.rule_type = 'M'
+     and results_date = trunc(sysdate))
+select *
+  from students s
+ where (s.results_date_skey, s.table_skey1, s.table_skey2, s.rule_id_skey) not in
+       (select frdrd.results_date_skey
+              ,frdrd.table_skey1
+              ,frdrd.table_skey2
+              ,frdrd.rule_id_skey
+          from fact_rules_daily_results_detail frdrd
+         where frdrd.rules_type_skey = (select drt.rules_type_skey from dim_rules_type drt where drt.rules_type_bkey = 'S'))
+union
+select *
+  from modules m
+ where (m.results_date_skey, m.table_skey1, m.rule_id_skey) not in
+ (select frdrd.results_date_skey
+        ,frdrd.table_skey1
+        ,frdrd.rule_id_skey
+    from fact_rules_daily_results_detail frdrd
+   where frdrd.rules_type_skey = (select drt.rules_type_skey from dim_rules_type drt where drt.rules_type_bkey = 'M'));
+

@@ -1,0 +1,53 @@
+﻿create materialized view STUDENT_PASSPORT_DATA_MVW
+refresh force on demand
+as
+with PPT_MAX as
+ (select svs.ppt_stuc,
+              svs.ppt_ugid,
+              svs.ppt_seqn,
+              svs.ppt_pptn,
+              svs.ppt_name,
+              svs.ppt_issd,
+              svs.ppt_expd,
+              svs.ppt_ploi,
+              svs.ppt_natc,
+              svs.ppt_cobc,
+              svs.ppt_plob,
+              svs.ppt_ukid,
+              svs.ppt_iuse,
+              svs.ppt_udf1,
+              svs.ppt_udf2,
+              svs.ppt_udf3,
+              svs.ppt_udf4,
+              svs.ppt_udf5,
+              svs.ppt_udf6,
+              svs.ppt_udf7,
+              svs.ppt_udf8,
+              svs.ppt_udf9,
+              svs.ppt_udfa,
+              svs.ppt_udfb,
+              svs.ppt_udfc,
+              svs.ppt_udfd,
+              svs.ppt_udfe,
+              svs.ppt_udff,
+              svs.ppt_udfg,
+              svs.ppt_udfh,
+              svs.ppt_udfi,
+              svs.ppt_udfj,
+              svs.ppt_udfk,
+              svs.ppt_vrfd,
+              svs.ppt_prsc,
+              svs.ppt_note,
+        row_number() over(partition by svs.ppt_stuc order by svs.ppt_stuc, svs.ppt_seqn desc) as rn
+    from srs_ppt_stg svs
+   where svs.ppt_iuse = 'Y'
+   order by svs.ppt_stuc
+           ,svs.ppt_seqn),
+ppt_max_1 as
+ (select * from ppt_MAX where rn = 1),
+current_stu as
+ (select * from CURRENT_YEAR_STUDENT_CURR_ENROLMENT_LIST_MVW x),
+all_data as
+ (select * from current_stu t left outer join ppt_max_1 u on u.ppt_stuc = t.stu_code )
+select * from all_data x;
+

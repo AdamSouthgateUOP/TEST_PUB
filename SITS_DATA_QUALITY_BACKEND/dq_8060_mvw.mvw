@@ -1,0 +1,43 @@
+﻿create materialized view DQ_8060_MVW
+refresh force on demand
+as
+with term_phone_no_all as
+ (select madd.add_adid as stu_code
+        ,madd.add_teln
+        ,madd.add_tel2
+        ,madd.add_tel3
+        ,madd.add_begd
+        ,madd.add_endd
+        ,row_number() over(partition by madd.add_adid order by madd.add_adid) as rn
+        ,case
+           when add_teln is null
+                and add_tel2 is null
+                and add_tel3 is null then
+            null
+           else
+            1
+         end as term_phone
+    from men_add_stg madd
+   where madd.add_atyc = 'TERM'
+     and madd.add_actv = 'C'
+     and nvl(madd.add_begd, trunc(sysdate)) <= trunc(sysdate)
+   --  and nvl(madd.add_endd, trunc(sysdate)) >= trunc(sysdate)
+
+  ),
+term_phone_no as
+ (select * from term_phone_no_all where rn = 1),
+current_students as
+ (select * from current_year_student_curr_enrolment_list_mvw)
+select cx.stu_name
+      ,cx.enrolment_status
+      ,cx.id_number        as stu_code
+      ,tpn.add_teln
+      ,tpn.add_tel2
+      ,tpn.add_tel3
+      ,tpn.term_phone      as term_phone
+      ,tpn.add_begd
+      ,tpn.add_endd
+  from current_students cx
+  left outer join term_phone_no tpn
+    on tpn.stu_code = cx.id_number;
+

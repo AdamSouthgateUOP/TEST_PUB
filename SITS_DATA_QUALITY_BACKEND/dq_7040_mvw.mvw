@@ -1,0 +1,56 @@
+﻿create materialized view DQ_7040_MVW
+refresh force on demand
+as
+with student_list as
+ (select * from current_year_student_curr_enrolment_list_mvw x),
+invalid_list as
+ (select j.scj_stuc
+         /*   ,j.scj_ayrc
+         ,j.scj_begd
+         ,j.scj_endd
+         ,j.scj_endd
+         ,j.scj_stac
+         ,e.sce_ayrc
+         ,e.sce_crsc
+         ,e.sce_begd
+         ,e.sce_endd
+         ,e.sce_regd*/
+        ,e.SCE_OCCL
+        ,case
+           when SUBSTR(e.SCE_OCCL
+                      ,-1
+                      ,1) = 'A' then
+            'Y' -- Last letter is 'A'
+           else
+            'N' -- Not an 'A' instance
+         end as A_INSTANCE_FLAG
+        ,case
+           when SUBSTR(e.SCE_OCCL
+                      ,-1
+                      ,1) = 'B'
+                and SUBSTR(e.SCE_OCCL
+                          ,-3
+                          ,3) <> 'FEB' then
+            'Y' -- Last letter is 'B' but occurrence does not end with 'FEB'
+           else
+            'N' -- Not a 'B' instance
+         end as B_INSTANCE_FLAG
+    from SRS_SCJ_STG j
+    join SRS_SCE_STG e
+      on e.sce_scjc = j.scj_code
+   where e.sce_ayrc = (select academic_year_full_code
+                         from DIM_ACADEMIC_YEAR_VW
+                        where academic_year_bkey = (select academic_year
+                                                      from dim_date_vw
+                                                     where date_bkey = to_CHAR(TRUNC(sysdate)
+                                                                              ,'DD/MM/YYYY'))) and e.sce_ayrc <>
+ (select academic_year_full_code
+    from DIM_ACADEMIC_YEAR_VW
+   where academic_year_bkey = (select academic_year
+                                 from dim_date_vw
+                                where date_bkey = to_CHAR(TRUNC(e.sce_begd)
+                                                         ,'DD/MM/YYYY'))))
+select * from student_list sl left outer join invalid_list il on il.scj_stuc = sl.id_number where scj_stuc is not null;
+grant select on DQ_7040_MVW to ODIADMIN;
+
+

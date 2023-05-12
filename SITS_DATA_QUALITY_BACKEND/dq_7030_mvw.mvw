@@ -1,0 +1,66 @@
+﻿create materialized view DQ_7030_MVW
+refresh force on demand
+as
+with curr_students as
+ (select * from CURRENT_YEAR_STUDENT_CURR_ENROLMENT_LIST_MVW t),
+CAM_SAW as
+ (select spr_code,
+         ayr_code,
+         saw_scnc,
+         awd_code,
+         saw_repo,
+         saw_iawd,
+         saw_iawo,
+         saw_date,
+         saw_lexd,
+         saw_numx,
+         cla_code,
+         saw_acmc,
+         saw_mark,
+         saw_clar,
+         saw_clar1,
+         saw_clar2,
+         cla1_code,
+         cla1_disc,
+         cla2_code,
+         aws_code,
+         saw_surn,
+         prg_code,
+         rou_code,
+         spr_batch,
+         saw_cawd,
+         saw_udf1,
+         saw_udf2,
+         saw_udf3,
+         saw_udf4,
+         saw_udf5,
+         saw_udf6,
+         saw_udf7,
+         saw_udf8,
+         saw_udf9,
+         saw_udfa,
+         saw_udfb,
+         saw_udfc,
+         saw_udfd,
+         saw_udfe,
+         saw_udff,
+         saw_udfg,
+         saw_udfh,
+         saw_udfi,
+         saw_udfj,
+         saw_udfk,
+         saw_name,
+         saw_dptc,
+         saw_facc,
+         saw_lock
+    from CAM_SAW_STG css
+   where ayr_code =
+         ((select t.academic_year_full_code
+             from BIDW.DIM_ACADEMIC_YEAR t
+            where t.academic_year_bkey =
+                  (select x.academic_year from bidw.dim_date x where x.date_bkey = to_CHAR(TRUNC(sysdate), 'DD/MM/YYYY'))))
+     and nvl(css.awd_code, '!') not in (select AWD_CODE from INS_AWD_STG))
+select * from curr_students a left outer join CAM_SAW b on b.SPR_CODE = a.stu_code;
+grant select on DQ_7030_MVW to ODIADMIN;
+
+

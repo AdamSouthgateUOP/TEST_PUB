@@ -1,0 +1,28 @@
+﻿create table FACT_RULES_DAILY_RESULTS_DETAIL
+(
+  results_date       DATE not null,
+  rule_id_skey       INTEGER not null,
+  table_key          VARCHAR2(255) not null,
+  student_id         VARCHAR2(24),
+  record_status      VARCHAR2(10) not null,
+  course_skey        NUMBER not null,
+  academic_year_skey NUMBER not null,
+  student_skey       NUMBER not null,
+  total_count        NUMBER not null,
+  rules_type_skey    NUMBER,
+  table_skey1        NUMBER,
+  table_skey2        NUMBER,
+  table_key1         VARCHAR2(255),
+  table_key2         VARCHAR2(255),
+  results_date_skey  NUMBER
+)
+;
+create index RESULTS_DATE on FACT_RULES_DAILY_RESULTS_DETAIL (RESULTS_DATE);
+create index RESULTS_DATE_RECORD_STATUS on FACT_RULES_DAILY_RESULTS_DETAIL (RECORD_STATUS, RESULTS_DATE);
+create index RESULTS_DATE_RULE_ID_SKEY on FACT_RULES_DAILY_RESULTS_DETAIL (RESULTS_DATE, RULE_ID_SKEY);
+alter table FACT_RULES_DAILY_RESULTS_DETAIL
+  add constraint FRDRDDN_PRIM_KEY primary key (RESULTS_DATE, RULE_ID_SKEY, TABLE_KEY, RECORD_STATUS)
+  disable
+  novalidate;
+grant select, insert, update, delete on FACT_RULES_DAILY_RESULTS_DETAIL to ODIADMIN;
+

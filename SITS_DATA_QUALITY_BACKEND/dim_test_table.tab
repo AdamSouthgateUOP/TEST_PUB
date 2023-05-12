@@ -1,0 +1,10 @@
+﻿create table DIM_TEST_TABLE
+(
+  column1 NUMBER not null,
+  column3 NUMBER not null,
+  column5 NUMBER not null,
+  column4 NUMBER not null,
+  column2 NUMBER not null
+)
+;
+

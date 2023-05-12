@@ -1,0 +1,10 @@
+﻿create table DIM_RULES_CATEGORIES
+(
+  category_id_skey INTEGER not null,
+  category_id_bkey INTEGER,
+  category_name    VARCHAR2(255)
+)
+;
+alter table DIM_RULES_CATEGORIES
+  add constraint DIM_RULES_CATEGORIES_20230427_1_PRIM primary key (CATEGORY_ID_SKEY);
+

@@ -1,0 +1,27 @@
+﻿create table DAILY_RESULTS
+(
+  results_date    DATE not null,
+  rule_id         INTEGER not null,
+  table_key       VARCHAR2(255) not null,
+  course_code     VARCHAR2(30),
+  department_code VARCHAR2(24),
+  faculty_code    VARCHAR2(12),
+  student_id      VARCHAR2(24),
+  record_status   VARCHAR2(10) not null,
+  academic_year   VARCHAR2(12),
+  total_count     NUMBER not null,
+  table_key1      VARCHAR2(255),
+  table_key2      VARCHAR2(255),
+  rule_type       VARCHAR2(1)
+)
+;
+comment on column DAILY_RESULTS.table_key
+  is 'Becomes Table_skey1';
+comment on column DAILY_RESULTS.student_id
+  is 'Drop';
+create index DR_RESULTS_DATE on DAILY_RESULTS (RESULTS_DATE);
+create index DR_RULE_TYPE on DAILY_RESULTS (RULE_TYPE);
+alter table DAILY_RESULTS
+  add constraint DR_PRIM_KEY primary key (RESULTS_DATE, RULE_ID, TABLE_KEY, RECORD_STATUS);
+grant select, insert, update, delete on DAILY_RESULTS to ODIADMIN;
+

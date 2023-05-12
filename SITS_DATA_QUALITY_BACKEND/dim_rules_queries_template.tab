@@ -1,0 +1,13 @@
+﻿create table DIM_RULES_QUERIES_TEMPLATE
+(
+  added_query       CLOB,
+  opened_query      CLOB,
+  closed_query      CLOB,
+  rule_type         VARCHAR2(50),
+  rule_entity       VARCHAR2(50),
+  query_skey        NUMBER generated always as identity (start with 100000 cache 5),
+  in_use            VARCHAR2(1) default 'N',
+  query_description VARCHAR2(255)
+)
+;
+

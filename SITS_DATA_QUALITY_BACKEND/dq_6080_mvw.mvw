@@ -1,0 +1,42 @@
+﻿create materialized view DQ_6080_MVW
+refresh force on demand
+as
+with academic_yr as
+ (select t.academic_year_full_code
+    from BIDW.DIM_ACADEMIC_YEAR t
+   where t.academic_year_bkey = (select x.academic_year
+                                   from bidw.dim_date x
+                                  where x.date_bkey = to_CHAR(TRUNC(sysdate)
+                                                             ,'DD/MM/YYYY'))),
+curr_students as
+ (select * from CURRENT_YEAR_STUDENT_CURR_ENROLMENT_LIST_MVW t),
+smtspr as
+ (select css.ayr_code
+        ,y.spr_stuc
+        ,sum(nvl(smo_mcrd
+                ,0)) as Credit_Count
+    from CAM_SMO_STG css
+    full outer join INS_SPR_stg Y
+      on y.spr_code = css.spr_code
+   where nvl(css.ayr_code
+            ,'1900/01') = (select academic_yr.academic_year_full_code from academic_yr)
+     and nvl(SMO_RSTA
+            ,'X') in ('X'
+                     ,'E')
+   group by css.ayr_code
+           ,y.spr_stuc
+   order by css.ayr_code
+           ,y.spr_stuc)
+select a.stu_code
+      ,b.ayr_code
+      ,nvl(b.Credit_Count
+          ,0) as Credit_Count
+      ,a.mode_of_attendance_code
+      ,a.mode_of_attendance_name
+      ,a.funding_council_moa_code
+  from curr_students a
+  left join smtspr b
+    on b.SPR_STUC = a.stu_code;
+grant select on DQ_6080_MVW to ODIADMIN;
+
+

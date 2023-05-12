@@ -1,0 +1,33 @@
+﻿create table DIM_RULES_ENGINE
+(
+  rule_id_skey                 NUMBER not null,
+  rule_id_bkey                 NUMBER,
+  rule_name                    VARCHAR2(255) not null,
+  rule_description             VARCHAR2(4000) not null,
+  rule_enabled                 VARCHAR2(1) not null,
+  use_in_front_end             VARCHAR2(1),
+  go_live_date                 DATE,
+  last_successful_run_datetime DATE,
+  rule_long_description        VARCHAR2(4000),
+  january                      INTEGER,
+  february                     INTEGER,
+  march                        INTEGER,
+  april                        INTEGER,
+  may                          INTEGER,
+  june                         INTEGER,
+  july                         INTEGER,
+  august                       INTEGER,
+  september                    INTEGER,
+  october                      INTEGER,
+  november                     INTEGER,
+  december                     INTEGER,
+  rule_type                    VARCHAR2(1)
+)
+;
+create unique index DIM_RULES_ENGINE_RULE_ID_SKEY_UK on DIM_RULES_ENGINE (RULE_ID_BKEY);
+alter table DIM_RULES_ENGINE
+  add constraint DIM_RULES_ENGINE_20230427_RULE_ID_PK primary key (RULE_ID_SKEY);
+alter table DIM_RULES_ENGINE
+  add constraint DIM_RULES_ENGINE_20230427_VALIDATE_RULE_ENABLED
+  check (RULE_ENABLED in ('Y','N'));
+

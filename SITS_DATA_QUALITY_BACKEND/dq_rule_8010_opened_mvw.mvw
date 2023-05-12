@@ -1,0 +1,127 @@
+﻿create materialized view DQ_RULE_8010_OPENED_MVW
+refresh force on demand
+as
+with rule_id as
+ (select rule_id_skey , rule_id_bkey from dim_rules_engine dre where dre.rule_id_skey = 1000410 and rule_enabled = 'Y'
+     and ((january = 1 and trim(to_char(trunc(sysdate)
+                                         ,'Month')) = 'January') or
+         (february = 1 and trim(to_char(trunc(sysdate)
+                                          ,'Month')) = 'February') or
+         (march = 1 and trim(to_char(trunc(sysdate)
+                                       ,'Month')) = 'March') or
+         (april = 1 and trim(to_char(trunc(sysdate)
+                                       ,'Month')) = 'April') or
+         (may = 1 and trim(to_char(trunc(sysdate)
+                                     ,'Month')) = 'May') or
+         (june = 1 and trim(to_char(trunc(sysdate)
+                                      ,'Month')) = 'June') or
+         (july = 1 and trim(to_char(trunc(sysdate)
+                                      ,'Month')) = 'July') or
+         (august = 1 and trim(to_char(trunc(sysdate)
+                                        ,'Month')) = 'August') or
+         (september = 1 and trim(to_char(trunc(sysdate)
+                                           ,'Month')) = 'September') or
+         (october = 1 and trim(to_char(trunc(sysdate)
+                                         ,'Month')) = 'October') or
+         (november = 1 and trim(to_char(trunc(sysdate)
+                                          ,'Month')) = 'November') or
+         (december = 1 and trim(to_char(trunc(sysdate)
+                                          ,'Month')) = 'December'))),
+lrd as
+ (select last_successful_run_datetime from dim_rules_engine dre where rule_id_bkey = (select RULE_ID_bKEY from RULE_ID)),
+student_count as
+ (select /* +MATERIALIZE */
+   count(*) as total_student_count
+    from current_year_student_curr_enrolment_list_mvw),
+Opened as
+ (select 'Open' as record_status from dual),
+academic_year as
+ (select /* +MATERIALIZE */
+   T.ACADEMIC_YEAR_FULL_CODE
+  ,T.ACADEMIC_YEAR_SKEY
+    from BIDW.DIM_ACADEMIC_YEAR T
+   where T.ACADEMIC_YEAR_BKEY = (select X.ACADEMIC_YEAR
+                                   from BIDW.DIM_DATE X
+                                  where X.DATE_BKEY = TO_CHAR(TRUNC(sysdate),'DD/MM/YYYY'))),
+SCEJ as
+ (select SCJ.SCJ_STUC id_number
+        ,SCJ.SCJ_CRSC
+        ,SCJ.SCJ_AYRC
+        ,SCE.SCE_STUC
+        ,SCE.SCE_CRSC
+        ,SCE.SCE_AYRC academic_year
+        ,sce.sce_seq2
+        ,scj.scj_seq2
+        ,dc.course_code
+        ,df.faculty_code
+        ,dd.department_code
+        ,ROW_NUMBER() OVER(partition by sce.sce_stuc, sce.sce_ayrc order by sce.sce_scjc desc, sce.sce_begd desc, sce.sce_blok desc, sce.sce_seq2 desc) RN
+    from SRS_SCJ_STG SCJ
+    join SRS_SCE_STG SCE
+      on SCJ.SCJ_CODE = SCE.SCE_SCJC
+     and SCE.SCE_AYRC = (select ACADEMIC_YEAR_FULL_CODE from academic_year)
+    join bidw.dim_course dc
+      on sce.sce_crsc = dc.course_code
+    join bidw.dim_department dd
+      on dc.department_skey = dd.department_skey
+    join bidw.dim_faculty df
+      on dd.faculty_skey = df.faculty_skey ),
+cfda as
+ (select * from scej where rn = 1),
+
+today_data as
+ (select to_char(ID_NUMBER) as today_table_key
+        ,to_char(ID_NUMBER) as today_student_id
+    from DQ_8010_VW
+   where DRR_PKF1 IS NULL ),
+yesterday_data as
+ (select yd.table_key   as yesterday_table_key
+        ,yd.student_id  as yesterday_student_id
+    from FACT_RULES_DAILY_RESULTS_DETAIL yd
+   where results_date = (select last_successful_run_datetime from lrd)
+     and  yd.rule_id_skey = (select rule_id_skey from rule_id)),
+candidates as
+ (select Td.TODAY_TABLE_KEY
+        ,td.TODAY_STUDENT_ID
+    from TODAY_DATA td
+  intersect
+  select YD.YESTERDAY_TABLE_KEY
+        ,YD.YESTERDAY_STUDENT_ID
+    from YESTERDAY_DATA YD
+   order by TODAY_STUDENT_ID),
+results_date as
+ (select trunc(sysdate) as results_date from dual),
+candidates_2 as
+ (select rd.results_date       as results_date
+        ,ri.rule_id_bkey       as rule_id
+        ,x.today_table_key     as table_key
+        ,x.today_student_id    as student_id
+        ,y.course_code         as course_code
+        ,y.department_code     as department_code
+        ,y.faculty_code        as faculty_code
+        ,y.academic_year       as academic_year
+        ,total_student_count   as total_count
+        ,rs.record_status      as record_status
+    from candidates x
+    join cfda y
+      on (y.id_number = x.today_student_id)
+   cross join results_date rd
+   cross join academic_year ay
+   cross join Opened rs
+   cross join rule_id ri
+   cross join student_count
+   )
+select results_date,
+       y.rule_id,
+       y.table_key,
+       course_code,
+       department_code,
+       faculty_code,
+       student_id,
+       record_status,
+       academic_year,
+       total_count
+  from candidates_2 y;
+grant select on DQ_RULE_8010_OPENED_MVW to ODIADMIN;
+
+

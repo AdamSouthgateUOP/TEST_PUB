@@ -1,0 +1,9 @@
+﻿create materialized view STUDENT_ASSESSMENT_MARKS_MVW
+refresh force on demand
+as
+select *
+from student_assessment_marks_vw;
+grant select on STUDENT_ASSESSMENT_MARKS_MVW to BIDW;
+grant select on STUDENT_ASSESSMENT_MARKS_MVW to ODIADMIN;
+
+

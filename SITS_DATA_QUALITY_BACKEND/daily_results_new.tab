@@ -1,0 +1,18 @@
+﻿create table DAILY_RESULTS_NEW
+(
+  results_date    DATE not null,
+  rule_id         INTEGER not null,
+  table_key       VARCHAR2(255) not null,
+  course_code     VARCHAR2(30),
+  department_code VARCHAR2(24),
+  faculty_code    VARCHAR2(12),
+  record_status   VARCHAR2(10) not null,
+  academic_year   VARCHAR2(12),
+  total_count     NUMBER not null
+)
+;
+create index DR_NEW_RESULTS_DATE on DAILY_RESULTS_NEW (RESULTS_DATE);
+alter table DAILY_RESULTS_NEW
+  add constraint DR_NEW_PRIM_KEY primary key (RESULTS_DATE, RULE_ID, TABLE_KEY, RECORD_STATUS);
+grant select, insert, update, delete on DAILY_RESULTS_NEW to ODIADMIN;
+

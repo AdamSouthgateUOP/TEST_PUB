@@ -1,0 +1,27 @@
+﻿create materialized view DQ_8110_MVW
+refresh force on demand
+as
+with home_email as
+ (select madd.add_adid
+        ,madd.add_emad as home_email
+        ,add_alte      as alternate_email
+    from men_add_stg madd
+   where madd.add_atyc = 'HOME'
+     and madd.add_actv = 'C'),
+current_students as
+ (select * from current_year_student_curr_enrolment_list_mvw),
+student_home_emails as
+ (select * from current_students cx left outer join home_email he on he.add_adid = cx.id_number),
+home_dupes as
+ (select add_adid
+        ,count(*) as dupe_count
+    from home_email
+   group by add_adid
+  having count(*) > 1
+   order by add_adid)
+select cs.id_number,
+      nvl(dupe_count, 1) as dupe_count
+  from current_students cs
+  left outer join home_dupes hd
+    on hd.add_adid = cs.id_number;
+

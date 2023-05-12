@@ -1,0 +1,28 @@
+﻿create materialized view DQ_8100_MVW
+refresh force on demand
+as
+with fayes as
+ (select cms.map_code from cam_mab_stg cms where cms.mab_fayn = 'Y'),
+fano as
+ (select cms.map_code from cam_mab_stg cms where cms.mab_fayn = 'N'),
+fanowithoutyes as
+ (select * from fano where map_code not in (select map_code from fayes)),
+academic_year as
+ (select /* +MATERIALIZE */
+   t.academic_year_full_code
+  ,t.academic_year_skey
+    from bidw.dim_academic_year t
+   where t.academic_year_bkey =
+         (select x.academic_year from bidw.dim_date x where x.date_bkey = to_char(trunc(sysdate), 'DD/MM/YYYY')))
+select distinct mod.mod_code
+  from fanowithoutyes ie
+  left outer join cam_map_stg map
+    on map.map_code = ie.map_code
+  left outer join cam_mav_stg mav
+    on mav.map_code = map.map_code
+  left outer join ins_mod_stg mod
+    on mod.mod_code = mav.mod_code
+ where mav.ayr_code = (select academic_year_full_code from academic_year)
+   and mod.mod_iuse = 'Y'
+   and mot_code != 'APL';
+
