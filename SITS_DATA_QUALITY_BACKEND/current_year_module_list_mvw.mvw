@@ -1,24 +1,45 @@
-﻿create materialized view CURRENT_YEAR_MODULE_LIST_MVW
-refresh force on demand
-as
-with academic_year as
- (select /* +MATERIALIZE */
-   t.academic_year_full_code
-  ,t.academic_year_skey
-    from bidw.dim_academic_year t
-   where t.academic_year_bkey =
-         (select x.academic_year from bidw.dim_date x where x.date_bkey = to_char(trunc(sysdate), 'DD/MM/YYYY'))),
-module_list as
- (select mod.mod_code
-    from ins_mod_stg mod
-    join cam_mav_stg mav
-      on mav.mod_code = mod.mod_code
-   where mod.mod_iuse = 'Y'
-     and mav.ayr_code = '2022/23'
-   group by mod.mod_code
-   order by mod.mod_code)
-select trunc(sysdate) as results_date
-      ,x.*
-  from ins_mod_stg x
- where x.mod_code in ( select mod_code from module_list);
-
+﻿create materialized view
+  CURRENT_YEAR_MODULE_LIST_MVW refresh force on demand as
+with
+  academic_year as (
+    select
+      /* +MATERIALIZE */ t.academic_year_full_code,
+      t.academic_year_skey
+    from
+      bidw.dim_academic_year t
+    where
+      t.academic_year_bkey = (
+        select
+          x.academic_year
+        from
+          bidw.dim_date x
+        where
+          x.date_bkey = to_char(trunc(sysdate), 'DD/MM/YYYY')
+      )
+  ),
+  module_list as (
+    select
+      mod.mod_code
+    from
+      ins_mod_stg mod
+      join cam_mav_stg mav on mav.mod_code = mod.mod_code
+    where
+      mod.mod_iuse = 'Y'
+      and mav.ayr_code = '2022/23'
+    group by
+      mod.mod_code
+    order by
+      mod.mod_code
+  )
+select
+  trunc(sysdate) as results_date,
+  x.*
+from
+  ins_mod_stg x
+where
+  x.mod_code in (
+    select
+      mod_code
+    from
+      module_list
+  );
